@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Trustigo — Detecting Fraud Before Refund
 
 **1. Problem Statement**
@@ -301,3 +302,36 @@ Trustigo enables:
 * Fair treatment of genuine customers
 * Data-driven fraud investigation
 * Scalable fraud management solutions
+=======
+# Trustigo
+
+**AI-powered E-commerce Returns Fraud Detection Dashboard**
+
+Trustigo is a hackathon MVP designed to detect fraudulent return behavior such as serial returning, wardrobing, and abnormal purchase-return patterns.
+
+## Features
+- **AI Analytics**: Uses Isolation Forest to detect anomalous return patterns.
+- **Explainable AI**: Generates a human-readable explanation alongside a 0-100 risk score based on rule logic.
+- **Interactive Dashboard**: Modern dark-themed dashboard showing user behaviors, metrics, and KPI charts.
+
+## Setup Instructions
+
+1. **Backend API setup**
+   Ensure Python dependencies are installed (`pip install -r requirements.txt`).
+   Run the FastAPI + SQLite backend from the `Trustigo` root:
+   ```bash
+   uvicorn backend.main:app --reload
+   ```
+   *Note: On first run or to reset the synthetic DB, trigger the ML pipeline via the Swagger API `/run-fraud-analysis` endpoint.*
+
+2. **Frontend UI start**
+   In a separate terminal, navigate into the `frontend/` folder:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+## APIs
+- Swagger AI docs available running at `http://127.0.0.1:8000/docs`.
+>>>>>>> beadc2f (11:36pm)

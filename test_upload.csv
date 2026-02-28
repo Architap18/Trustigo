@@ -1,0 +1,3 @@
+user_id,transaction_id,item_id,price,date,return_date
+999,TXN-999,ITEM-999,149.99,2026-02-28,
+999,TXN-999,ITEM-998,89.99,2026-02-28,2026-03-01
