@@ -1,0 +1,353 @@
+Trustigo — AI-Powered Returns Fraud Detection Dashboard
+
+**1. Problem Statement**
+Analyzes transaction logs for suspicious return behavior
+Detects serial return patterns
+Identifies anomalies in purchase-return timing
+Flags potential receipt manipulation
+Explains why a user is considered high-risk
+
+**Problem Title**
+Returns Fraud Detection Dashboard
+
+Trustigo: Return Fraud Detection System
+
+**Problem Description**
+
+E-commerce platforms face significant financial losses due to fraudulent return behavior such as serial returning, wardrobing (temporary usage before returning), and receipt manipulation. Manual monitoring becomes ineffective due to massive transaction volumes and evolving fraud strategies.
+
+Trustigo aims to intelligently analyze transaction logs, detect suspicious return patterns, assign interpretable risk scores, and provide clear explanations through an interactive dashboard.
+
+**Target Users**
+
+* E-commerce Fraud Analysis Teams
+* Return Management Departments
+* Marketplace Administrators
+* Risk & Compliance Teams
+
+**Existing Gaps**
+
+* Rule-based fraud detection systems fail against evolving fraud behavior
+* Lack of explainability in fraud decisions
+* High false-positive rates affecting genuine customers
+* Limited behavioral analytics visualization
+
+ 2. Problem Understanding & Approach
+
+ **Root Cause Analysis**
+
+Return fraud occurs due to:
+
+* Absence of behavioral monitoring
+* Lack of anomaly detection mechanisms
+* Manual inspection limitations
+* Non-explainable automated decisions
+
+**Solution Strategy**
+
+Trustigo combines:
+
+* Behavioral analytics
+* Anomaly detection models
+* Risk scoring mechanisms
+* Explainable AI insights
+* Interactive visualization dashboard
+
+ 3. Proposed Solution
+
+ **Solution Overview**
+
+Trustigo is a dashboard-driven fraud detection system that analyzes transaction data to identify suspicious return behavior and classify users based on fraud risk.
+
+**Core Idea**
+
+Detect abnormal return patterns using hybrid logic:
+
+* Rule-based behavioral detection
+* Machine learning anomaly detection
+* Explainable risk scoring
+
+**Key Features**
+
+* Transaction dataset ingestion
+* Serial return detection
+* Fast-return (wardrobing) identification
+* High-value return abuse detection
+* AI-based anomaly detection
+* Explainable fraud reasoning
+* Interactive analytics dashboard
+
+4. System Architecture
+
+ **High-Level Flow**
+
+User → Frontend Dashboard → Backend APIs → Fraud Detection Model → Dataset → Risk Score → Dashboard Response
+
+**Architecture Description**
+
+The frontend dashboard sends user requests to backend APIs. The backend processes transaction data, applies fraud detection logic and anomaly models, computes risk scores, and returns interpretable fraud insights for visualization.
+
+**Architecture Diagram**
+![WhatsApp Image 2026-02-28 at 16 54 29](https://github.com/user-attachments/assets/f1da1174-8b8b-4010-b2a2-1babb50e2805)
+
+
+5. Database Design
+
+**ER Diagram**
+
+(Add ER diagram image here)
+
+**ER Diagram Description**
+1.⁠ ⁠USER → TRANSACTION
+Meaning: One customer can make many purchases
+
+Example: John (1 user) has 15 orders (15 transactions)
+
+2.⁠ ⁠TRANSACTION → TRANS_ITEM
+Meaning: One order contains multiple items
+
+Example: Order #123 has 3 different products
+
+3.⁠ ⁠ITEM → TRANS_ITEM
+Meaning: One product can appear in many orders
+
+Example: iPhone (1 item) is bought by 500 different customers
+
+4.⁠ ⁠TRANSACTION → RETURN
+Meaning: One order may have a return (or none)
+
+Example: Order #123 had 1 return request
+
+5.⁠ ⁠RETURN → RETURN_ITEM
+Meaning: One return can include multiple items being sent back
+
+Example: Return #456 includes 2 items from the original order
+
+6.⁠ ⁠TRANS_ITEM → RETURN_ITEM
+Meaning: Links the specific purchased item to its return record
+
+Example: Shows that the jeans from Order #123 were the ones returned
+
+7.⁠ ⁠USER → RISK_SCORE
+Meaning: Each user has one calculated risk profile
+
+Example: John's return rate = 65%, Overall Score = 78
+
+8.⁠ ⁠USER & RETURN → FRAUD_ALERT
+Meaning: When risk is high, an alert is created
+
+Entities include:
+* User
+* Orders
+* Transactions
+* Returns
+
+6. Dataset Selected
+
+**Dataset Name**
+
+Trustigo Transaction Dataset
+
+**Source**
+
+Synthetic dataset created for hackathon demonstration purposes.
+
+**Data Type**
+
+Structured CSV dataset containing:
+
+* user_id
+* order_id
+* category
+* price
+* purchase_date
+* return_date
+
+**Selection Reason**
+
+Real-world datasets are restricted due to privacy concerns; synthetic data allows realistic fraud pattern simulation.
+
+**Preprocessing Steps**
+
+* Date normalization
+* Missing return handling
+* Return duration calculation
+* User-wise aggregation
+* Feature extraction
+
+ 7. Model Selected
+
+**Model Name**
+
+Isolation Forest (Anomaly Detection)
+
+**Selection Reasoning**
+
+* Works well with unlabeled datasets
+* Detects behaviorallanomalies efficiently
+* Lightweight and fast for hackathon MVP
+
+**Alternatives Considered**
+
+* Local Outlier Factor
+* One-Class SVM
+* Rule-Based Detection Only
+
+**Evaluation Metrics**
+
+* Anomaly Score
+* Fraud Risk Score
+* Behavioral Consistency Analysis
+
+ 8. Technology Stack
+
+| Layer      | Technology                      |
+| ---------- | ------------------------------- |
+| Frontend   | HTML, CSS, JavaScript, Chart.js |
+| Backend    | Python, FastAPI |
+| ML/AI      | Scikit-learn, Pandas|
+| Database   | CSV-based storage |
+| Deployment | Vercel / Render |
+
+
+
+ 9. API Documentation & Testing
+
+**API Endpoints List**
+
+Endpoint 1**
+
+```
+GET /fraud-users
+```
+
+Returns all users with calculated risk scores.
+
+**Endpoint 2**
+
+```
+GET /user/{user_id}
+```
+
+Returns detailed fraud explanation for selected user.
+
+**Endpoint 3**
+
+```
+POST /upload-data
+```
+
+Uploads transaction dataset.
+
+**API Testing Screenshots**
+
+(Add Postman / Thunder Client screenshots here)
+
+10. Module-wise Development & Deliverables
+
+**Checkpoint 1: Research & Planning**
+
+**Deliverables**
+
+* Problem analysis
+* Architecture design
+* Dataset planning
+
+**Checkpoint 2: Backend Development**
+
+**Deliverables**
+
+* API creation
+* Fraud logic implementation
+* Risk scoring module
+
+**Checkpoint 3: Frontend Development**
+
+**Deliverables**
+
+* Dashboard UI
+* Visualization components
+* User interaction pages
+
+ **Checkpoint 4: Model Training**
+
+**Deliverables**
+
+* Isolation Forest model
+* Anomaly scoring
+
+ **Checkpoint 5: Model Integration**
+
+**Deliverables**
+
+* Backend-model integration
+* Risk explanation engine
+
+ **Checkpoint 6: Deployment**
+
+**Deliverables**
+
+* Live dashboard
+* Working APIs
+* Demo-ready system
+
+11. End-to-End Workflow
+
+1. Upload transaction dataset
+2. Backend processes user behavior
+3. Fraud detection logic + ML model applied
+4. Risk score generated
+5. Dashboard visualizes fraud insights
+6. Analyst reviews explanation
+
+ 12. Demo & Video
+
+**Live Demo Link:** (Add deployment link)
+**Demo Video Link:** (Add demo video link)
+**GitHub Repository:** (https://github.com/Architap18/Trustigo)
+
+ 13. Hackathon Deliverables Summary
+
+* Functional Fraud Detection Dashboard
+* Explainable Risk Scoring System
+* AI-Based Anomaly Detection
+* Interactive Visualization Platform
+
+ 14. Team Roles & Responsibilities
+
+| Member Name | Role                       | Responsibilities  |
+| ----------- | -------------------------- | ----------------- |
+| Member 1    | Backend Developer          | APIs & Logic      |
+| Member 2    | ML Engineer               	| Model Development |
+| Member 3    | Frontend Developer         | Dashboard UI and Testing & PPT|
+ 
+ 15. Future Scope & Scalability
+
+ **Short-Term**
+
+* Real-time fraud monitoring
+* Automated alerts
+* Improved UI analytics
+
+**Long-Term**
+
+* Large-scale database integration
+* Graph-based fraud networks
+* Deep learning behavioral modeling
+* Enterprise e-commerce integration
+
+16. Known Limitations
+
+* Uses synthetic dataset
+* Limited real-time streaming capability
+* Prototype-level scalability
+* Requires larger datasets for production accuracy
+
+17. Impact
+
+Trustigo enables:
+
+* Reduced financial loss due to return fraud
+* Fair treatment of genuine customers
+* Data-driven fraud investigation
+* Scalable fraud management solutions
