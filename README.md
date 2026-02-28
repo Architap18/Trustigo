@@ -267,9 +267,9 @@ Uploads transaction dataset.
 
 | Member Name | Role                       | Responsibilities  |
 | ----------- | -------------------------- | ----------------- |
-| Member 1    | Backend Developer          | APIs & Logic      |
-| Member 2    | ML Engineer               	| Model Development |
-| Member 3    | Frontend Developer         | Dashboard UI and Testing & PPT|
+| Riddhima    | Backend Developer          | APIs & Logic      |
+| Ashmit      | Planning and Execution     | Development       |
+| Archita     | Frontend Developer         | Dashboard UI and Testing & PPT|
  
  15. Future Scope & Scalability
 
