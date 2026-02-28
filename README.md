@@ -1,4 +1,4 @@
-Trustigo — AI-Powered Returns Fraud Detection Dashboard
+Trustigo — Detecting Fraud Before Refund
 
 **1. Problem Statement**
 Analyzes transaction logs for suspicious return behavior
@@ -93,54 +93,6 @@ The frontend dashboard sends user requests to backend APIs. The backend processe
 
 5. Database Design
 
-**ER Diagram**
-
-(Add ER diagram image here)
-
-**ER Diagram Description**
-1.⁠ ⁠USER → TRANSACTION
-Meaning: One customer can make many purchases
-
-Example: John (1 user) has 15 orders (15 transactions)
-
-2.⁠ ⁠TRANSACTION → TRANS_ITEM
-Meaning: One order contains multiple items
-
-Example: Order #123 has 3 different products
-
-3.⁠ ⁠ITEM → TRANS_ITEM
-Meaning: One product can appear in many orders
-
-Example: iPhone (1 item) is bought by 500 different customers
-
-4.⁠ ⁠TRANSACTION → RETURN
-Meaning: One order may have a return (or none)
-
-Example: Order #123 had 1 return request
-
-5.⁠ ⁠RETURN → RETURN_ITEM
-Meaning: One return can include multiple items being sent back
-
-Example: Return #456 includes 2 items from the original order
-
-6.⁠ ⁠TRANS_ITEM → RETURN_ITEM
-Meaning: Links the specific purchased item to its return record
-
-Example: Shows that the jeans from Order #123 were the ones returned
-
-7.⁠ ⁠USER → RISK_SCORE
-Meaning: Each user has one calculated risk profile
-
-Example: John's return rate = 65%, Overall Score = 78
-
-8.⁠ ⁠USER & RETURN → FRAUD_ALERT
-Meaning: When risk is high, an alert is created
-
-Entities include:
-* User
-* Orders
-* Transactions
-* Returns
 
 6. Dataset Selected
 
@@ -150,7 +102,7 @@ Trustigo Transaction Dataset
 
 **Source**
 
-Synthetic dataset created for hackathon demonstration purposes.
+Raw data of Amazon and Flipkart
 
 **Data Type**
 
@@ -165,7 +117,7 @@ Structured CSV dataset containing:
 
 **Selection Reason**
 
-Real-world datasets are restricted due to privacy concerns; synthetic data allows realistic fraud pattern simulation.
+Real Data
 
 **Preprocessing Steps**
 
@@ -302,9 +254,7 @@ Uploads transaction dataset.
 
  12. Demo & Video
 
-**Live Demo Link:** (Add deployment link)
-**Demo Video Link:** (Add demo video link)
-**GitHub Repository:** (https://github.com/Architap18/Trustigo)
+**GitHub Repository:** https://github.com/Architap18/Trustigo
 
  13. Hackathon Deliverables Summary
 
