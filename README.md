@@ -155,7 +155,7 @@ Isolation Forest (Anomaly Detection)
 
 | Layer      | Technology                      |
 | ---------- | ------------------------------- |
-| Frontend   | HTML, CSS, JavaScript, Chart.js |
+| Frontend   | HTML, CSS, JavaScript, Chart.js, React |
 | Backend    | Python, FastAPI |
 | ML/AI      | Scikit-learn, Pandas|
 | Database   | CSV-based storage |
