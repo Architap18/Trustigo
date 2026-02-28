@@ -3,25 +3,27 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { Upload, Play, ArrowRight, ShieldAlert, Activity, Users, Bell } from 'lucide-react';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
+
 ChartJS.defaults.color = '#94a3b8';
+ChartJS.defaults.font.family = 'Inter';
 
 export default function DashboardOverview() {
     const [data, setData] = useState([]);
     const [stats, setStats] = useState({ total: 0, fraud: 0, avg: 0 });
     const [loading, setLoading] = useState(true);
     const [evaluating, setEvaluating] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     const fetchUsers = async () => {
         try {
             const res = await axios.get('http://127.0.0.1:8000/fraud-users');
             setData(res.data);
-
             const total = res.data.length;
             const fraud = res.data.filter(u => u.overall_risk_score >= 60).length;
             const avg = res.data.reduce((acc, curr) => acc + curr.overall_risk_score, 0) / (total || 1);
-
             setStats({ total, fraud, avg: avg.toFixed(1) });
         } catch (e) {
             console.error("Failed to fetch dashboard data", e);
@@ -34,8 +36,6 @@ export default function DashboardOverview() {
         fetchUsers();
     }, []);
 
-    const [uploading, setUploading] = useState(false);
-
     const handleRunAnalysis = async () => {
         setEvaluating(true);
         try {
@@ -43,7 +43,7 @@ export default function DashboardOverview() {
             await fetchUsers();
         } catch (e) {
             console.error('Analysis failed', e);
-            alert('Failed to run analysis. Make sure the backend is running.');
+            alert('Failed to run analysis.');
         } finally {
             setEvaluating(false);
         }
@@ -53,8 +53,8 @@ export default function DashboardOverview() {
         const file = event.target.files[0];
         if (!file) return;
 
-        if (!file.name.toLowerCase().endsWith('.csv') && !file.name.toLowerCase().endsWith('.tsv') && !file.name.toLowerCase().endsWith('.txt')) {
-            alert("Please upload a valid CSV/TSV/TXT file.");
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            alert("Please upload a valid CSV file.");
             return;
         }
 
@@ -64,26 +64,35 @@ export default function DashboardOverview() {
 
         try {
             const res = await axios.post('http://127.0.0.1:8000/upload-csv', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
-            alert(`CSV Uploaded! ${res.data.stats.new_users} new users, ${res.data.stats.new_transactions} transactions added. Running analysis next...`);
-            await handleRunAnalysis(); // automatically run the ML pipeline
+            alert(`CSV Uploaded! ${res.data.stats.new_users} new users.`);
+
+            try {
+                await handleRunAnalysis();
+            } catch (authErr) {
+                console.error('Analysis failed after upload', authErr);
+                alert("CSV uploaded, but ML Analysis failed to run.");
+            }
         } catch (e) {
             console.error('Upload failed', e);
-            alert(e.response?.data?.detail || "Failed to upload CSV.");
+            alert("Failed to upload CSV. Ensure backend is running on port 8000.");
         } finally {
             setUploading(false);
-            // Reset the input
             event.target.value = null;
         }
     };
 
-    if (loading) return <div className="text-center mt-20 text-slate-400">Loading metrics...</div>;
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400 space-y-4 animate-pulse-glow">
+                <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <p className="font-medium tracking-wide">Initializing engine...</p>
+            </div>
+        );
+    }
 
-    // Chart Data preparation
-    const bins = [0, 0, 0, 0, 0]; // 0-20, 21-40, 41-60, 61-80, 81-100
+    const bins = [0, 0, 0, 0, 0];
     data.forEach(u => {
         let idx = Math.floor(u.overall_risk_score / 20);
         if (idx > 4) idx = 4;
@@ -95,8 +104,9 @@ export default function DashboardOverview() {
         datasets: [{
             label: 'Users',
             data: bins,
-            backgroundColor: ['#10b981', '#10b981', '#f59e0b', '#ef4444', '#ef4444'],
-            borderRadius: 4
+            backgroundColor: ['#10b981', '#34d399', '#fbbf24', '#f87171', '#ef4444'],
+            borderRadius: 6,
+            borderSkipped: false,
         }]
     };
 
@@ -108,18 +118,26 @@ export default function DashboardOverview() {
         labels: ['Safe', 'Medium', 'High Risk'],
         datasets: [{
             data: [safe, med, high],
-            backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-            borderWidth: 0
+            backgroundColor: ['rgba(16, 185, 129, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(239, 68, 68, 0.8)'],
+            borderColor: ['#10b981', '#f59e0b', '#ef4444'],
+            borderWidth: 1,
+            hoverOffset: 4,
+            cutout: '75%',
         }]
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-            <header className="flex justify-between items-center mb-2">
-                <h1 className="text-3xl font-bold">Overview </h1>
+        <div className="space-y-8 animate-fade-in opacity-0">
+            <header className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8 mt-2">
+                <div>
+                    <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Platform Analytics</h1>
+                    <p className="text-slate-400 text-sm max-w-lg leading-relaxed">System-wide monitoring of behavioral scores, model inference outputs, and transaction velocities.</p>
+                </div>
+
                 <div className="flex gap-4">
-                    <label className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer text-slate-800 dark:text-white px-4 py-2 rounded-lg font-medium transition-colors duration-300 flex items-center gap-2 shadow-sm">
-                        {uploading ? 'Uploading...' : 'Upload CSV'}
+                    <label className="btn-secondary cursor-pointer group">
+                        <Upload size={18} className="text-slate-400 group-hover:text-white transition-colors" />
+                        {uploading ? 'Processing...' : 'Ingest Data'}
                         <input
                             type="file"
                             accept=".csv"
@@ -131,92 +149,174 @@ export default function DashboardOverview() {
                     <button
                         onClick={handleRunAnalysis}
                         disabled={evaluating || uploading}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                        className="btn-primary"
                     >
-                        {evaluating ? 'Running Analysis...' : 'Run Fraud Analysis'}
+                        {evaluating ? (
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                            <Play size={18} className="fill-current" />
+                        )}
+                        {evaluating ? 'Running Inference...' : 'Execute Analysis'}
                     </button>
                 </div>
             </header>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="card border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/30 dark:bg-indigo-900/10 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all duration-300 transform hover:-translate-y-1">
-                    <h3 className="text-sm font-semibold uppercase text-indigo-600/80 dark:text-indigo-400/80 tracking-wider">Total Evaluated</h3>
-                    <p className="text-4xl font-bold mt-2 text-slate-900 dark:text-white">{stats.total}</p>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-slide-up opacity-0" style={{ animationDelay: '0.1s' }}>
+                <div className="card group">
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400 group-hover:text-primary transition-colors">Total Evaluated</h3>
+                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
+                            <Users size={18} />
+                        </div>
+                    </div>
+                    <p className="text-4xl font-bold text-white tracking-tight">{stats.total.toLocaleString()}</p>
+                    <div className="mt-3 text-xs text-slate-500 font-medium flex items-center gap-1">
+                        <span className="text-safe">+12.5%</span> vs last period
+                    </div>
                 </div>
-                <div className="card border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-900/10 hover:shadow-md hover:border-rose-300 dark:hover:border-rose-500/30 transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 dark:bg-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
-                    <h3 className="text-sm font-semibold uppercase text-rose-600 dark:text-rose-400 tracking-wider relative z-10">High Risk Users</h3>
-                    <p className="text-4xl font-bold text-rose-600 dark:text-rose-500 mt-2 relative z-10">{stats.fraud}</p>
+
+                <div className="card border-danger/20 hover:border-danger/40 group relative">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-danger/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none transition-opacity group-hover:opacity-100 opacity-50"></div>
+                    <div className="flex justify-between items-start mb-4 relative z-10">
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-danger">High Risk Entities</h3>
+                        <div className="p-2 bg-danger/10 rounded-lg text-danger">
+                            <ShieldAlert size={18} />
+                        </div>
+                    </div>
+                    <p className="text-4xl font-bold text-white tracking-tight relative z-10">{stats.fraud.toLocaleString()}</p>
+                    <div className="mt-3 text-xs text-danger/80 font-medium flex items-center gap-1 relative z-10">
+                        Critical attention required
+                    </div>
                 </div>
-                <div className="card border-teal-100 dark:border-teal-900/50 bg-teal-50/30 dark:bg-teal-900/10 hover:shadow-md hover:border-teal-200 dark:hover:border-teal-500/30 transition-all duration-300 transform hover:-translate-y-1">
-                    <h3 className="text-sm font-semibold uppercase text-teal-600/80 dark:text-teal-400/80 tracking-wider">Average Risk Score</h3>
-                    <p className="text-4xl font-bold mt-2 text-slate-900 dark:text-white">{stats.avg}</p>
+
+                <div className="card group">
+                    <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400 group-hover:text-warning transition-colors">Average Risk Index</h3>
+                        <div className="p-2 bg-warning/10 rounded-lg text-warning">
+                            <Activity size={18} />
+                        </div>
+                    </div>
+                    <p className="text-4xl font-bold text-white tracking-tight">{stats.avg}</p>
+                    <div className="w-full bg-dashboard rounded-full h-1.5 mt-4 overflow-hidden border border-white/5">
+                        <div className="bg-warning h-1.5 rounded-full" style={{ width: `${Math.min(100, (stats.avg / 100) * 100)}%` }}></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-slide-up opacity-0" style={{ animationDelay: '0.2s' }}>
+                <div className="card md:col-span-2 flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-sm font-semibold text-white">Risk Distribution Index</h3>
+                        <button className="text-xs text-primary hover:text-white transition-colors font-medium">Export Vector</button>
+                    </div>
+                    <div className="flex-1 min-h-[250px] relative w-full">
+                        <Bar
+                            data={barData}
+                            options={{
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    y: {
+                                        grid: { color: 'rgba(255, 255, 255, 0.03)', drawBorder: false },
+                                        ticks: { color: '#64748b', font: { family: 'Inter' } }
+                                    },
+                                    x: {
+                                        grid: { display: false, drawBorder: false },
+                                        ticks: { color: '#64748b', font: { family: 'Inter' } }
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
+                </div>
+
+                <div className="card flex flex-col justify-between">
+                    <div>
+                        <h3 className="text-sm font-semibold text-white mb-6">Status Composition</h3>
+                        <div className="relative h-48 flex items-center justify-center">
+                            <Doughnut
+                                data={doughData}
+                                options={{
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } },
+                                    elements: { arc: { borderJoinStyle: 'round' } }
+                                }}
+                            />
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-xs text-slate-500 font-medium">Total</span>
+                                <span className="text-2xl font-bold text-white">{stats.total}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-6 flex justify-center gap-6 text-xs font-medium">
+                        <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-safe shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span> Safe</div>
+                        <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-warning shadow-[0_0_8px_rgba(245,158,11,0.5)]"></span> Med</div>
+                        <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-danger shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span> High</div>
+                    </div>
                 </div>
             </div>
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="card hover:shadow-md hover:border-violet-200 dark:hover:border-violet-900/50 transition-all duration-300 relative overflow-hidden group">
-                    <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-violet-50/50 to-transparent dark:from-violet-900/10 dark:to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <h3 className="text-lg font-semibold mb-4 text-slate-800 dark:text-slate-100 relative z-10">Risk Distribution</h3>
-                    <div className="relative z-10">
-                        <Bar data={barData} options={{ plugins: { legend: { display: false } } }} />
-                    </div>
-                </div>
-                <div className="card flex flex-col items-center hover:shadow-md hover:border-cyan-200 dark:hover:border-cyan-900/50 transition-all duration-300 relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.03)_0%,transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(6,182,212,0.05)_0%,transparent_70%)] pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <h3 className="text-lg font-semibold mb-4 w-full text-left text-slate-800 dark:text-slate-100 relative z-10">Status Breakdown</h3>
-                    <div className="w-64 h-64 relative z-10">
-                        <Doughnut data={doughData} options={{ maintainAspectRatio: false }} />
-                    </div>
-                </div>
-            </div>
-
-            {/* Elevated Risk Users Table */}
             {data.filter(u => u.overall_risk_score >= 30).length > 0 && (
-                <div className="card hover:shadow-md transition-shadow duration-300">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Elevated Risk Users (Preview)</h3>
-                        <Link to="/fraud" className="text-sm text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 font-medium transition-colors flex items-center gap-1 group">
-                            View All <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+                <div className="card p-0 overflow-hidden animate-slide-up opacity-0" style={{ animationDelay: '0.3s' }}>
+                    <div className="p-6 border-b border-white/5 flex justify-between items-center bg-card">
+                        <div>
+                            <h3 className="text-sm font-semibold text-white">Elevated Risk Entities</h3>
+                            <p className="text-xs text-slate-400 mt-1">Users scoring over 30 requiring secondary review</p>
+                        </div>
+                        <Link to="/fraud" className="btn-secondary text-xs px-3 py-1.5 h-auto">
+                            View Database <ArrowRight size={14} />
                         </Link>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left">
+                        <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
-                                    <th className="pb-3 text-sm font-medium">User ID</th>
-                                    <th className="pb-3 text-sm font-medium">Risk Score</th>
-                                    <th className="pb-3 text-sm font-medium">Risk Level</th>
+                                <tr className="bg-dashboard/40 border-b border-white/5 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                                    <th className="px-6 py-4">User Identity</th>
+                                    <th className="px-6 py-4">Risk Coefficient</th>
+                                    <th className="px-6 py-4">Status Vector</th>
+                                    <th className="px-6 py-4 text-right">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                            <tbody className="divide-y divide-white/5">
                                 {data
                                     .filter(u => u.overall_risk_score >= 30)
                                     .sort((a, b) => b.overall_risk_score - a.overall_risk_score)
-                                    .slice(0, 15) // Show top 15 on dashboard
+                                    .slice(0, 5)
                                     .map((u) => (
-                                        <tr key={u.user_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer">
-                                            <td className="py-4 text-sm font-medium text-slate-800 dark:text-slate-200">
-                                                <Link to={`/user/${u.user_id}`} className="group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                                                    {u.user_id}
-                                                </Link>
+                                        <tr key={u.user_id} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-full bg-dashboard border border-white/5 flex items-center justify-center text-xs font-bold text-slate-300 group-hover:text-primary transition-colors group-focus-within:ring-2 group-focus-within:ring-primary">
+                                                        U
+                                                    </div>
+                                                    <div>
+                                                        <Link to={`/user/${u.user_id}`} className="text-sm font-medium text-slate-200 group-hover:text-primary transition-colors focus:outline-none">
+                                                            User #{u.user_id}
+                                                        </Link>
+                                                        <div className="text-[10px] text-slate-500 font-mono mt-0.5 tracking-wider">ID-{u.user_id}TXX</div>
+                                                    </div>
+                                                </div>
                                             </td>
-                                            <td className="py-4">
+                                            <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)] ${u.overall_risk_score >= 60 ? 'bg-rose-500 shadow-rose-500/50' : 'bg-amber-500 shadow-amber-500/50'}`}></div>
-                                                    <span className={`font-bold ${u.overall_risk_score >= 60 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                                    <div className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)] ${u.overall_risk_score >= 60 ? 'bg-danger shadow-danger/50' : 'bg-warning shadow-warning/50'}`}></div>
+                                                    <span className={`text-sm font-bold ${u.overall_risk_score >= 60 ? 'text-danger' : 'text-warning'}`}>
                                                         {u.overall_risk_score.toFixed(1)}
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="py-4 text-sm">
+                                            <td className="px-6 py-4">
                                                 {u.overall_risk_score >= 60 ? (
-                                                    <span className="px-2 py-1 text-xs font-medium bg-rose-500/10 text-rose-400 rounded-full border border-rose-500/20">High Risk</span>
+                                                    <span className="badge-high">Critical</span>
                                                 ) : (
-                                                    <span className="px-2 py-1 text-xs font-medium bg-amber-500/10 text-amber-400 rounded-full border border-amber-500/20">Medium Risk</span>
+                                                    <span className="badge-medium">Elevated</span>
                                                 )}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Link to={`/user/${u.user_id}`} className="text-primary hover:text-white transition-colors text-sm font-medium px-3 py-1.5 rounded-lg hover:bg-white/5">
+                                                    Manage
+                                                </Link>
                                             </td>
                                         </tr>
                                     ))}

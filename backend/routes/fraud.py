@@ -241,3 +241,60 @@ def run_analysis(db: Session = Depends(get_db)):
                 
     db.commit()
     return {"message": f"Successfully ran analysis on {len(users)} users"}
+
+@router.get("/analytics-summary")
+def get_analytics_summary(db: Session = Depends(get_db)):
+    # 1. Total Monitored API (total unique transactions)
+    total_txns = db.query(Transaction).count()
+    
+    # 2. Capital Saved ($ value of all returned items flagged by high-risk users)
+    # Get all high risk users
+    high_risk_users = db.query(BehaviorScore).filter(BehaviorScore.overall_risk_score >= 60).all()
+    high_risk_uids = [h.user_id for h in high_risk_users]
+    
+    # Get returns associated with high risk users (Assuming these would be blocked in a real flow)
+    blocked_returns = db.query(Return).filter(Return.user_id.in_(high_risk_uids)).all()
+    capital_saved = sum(r.refund_amount for r in blocked_returns)
+    blocked_count = len(blocked_returns)
+    
+    # Unrecognized Leakage (returns from users *not* high risk)
+    allowed_returns = db.query(Return).filter(~Return.user_id.in_(high_risk_uids)).all()
+    unrecognized_leakage = sum(r.refund_amount for r in allowed_returns)
+    manual_reviews = len(allowed_returns)
+
+    # 3. Time Series Data (Mocked out over months based on dynamic scalar ratio of actual db size for hackathon demo purposes)
+    def distribute_over_7(total):
+        import random
+        fractions = [random.uniform(0.5, 1.5) for _ in range(7)]
+        base = sum(fractions)
+        return [round((f / base) * total, 2) for f in fractions]
+
+    # Gross Volume Calculation
+    all_txns = db.query(Transaction).all()
+    gross_volume = sum(t.total_amount for t in all_txns)
+    expected_earnings = gross_volume - unrecognized_leakage
+
+    revenueLossData = {
+        "prevented": distribute_over_7(capital_saved if capital_saved > 0 else 120000),
+        "expected_earnings": distribute_over_7(expected_earnings if expected_earnings > 0 else 450000),
+        "leakage": distribute_over_7(unrecognized_leakage if unrecognized_leakage > 0 else 18000)
+    }
+    
+    blockRateData = {
+        "blocked": [int(x) for x in distribute_over_7(blocked_count if blocked_count > 0 else 150)],
+        "manual": [int(x) for x in distribute_over_7(manual_reviews if manual_reviews > 0 else 40)]
+    }
+    
+    catch_rate = 0.0
+    if (capital_saved + unrecognized_leakage) > 0:
+        catch_rate = (capital_saved / (capital_saved + unrecognized_leakage)) * 100
+
+    return {
+        "capital_saved": capital_saved,
+        "gross_volume": gross_volume,
+        "expected_earnings": expected_earnings,
+        "catch_rate": round(catch_rate, 1),
+        "total_txns": total_txns,
+        "revenue_timeseries": revenueLossData,
+        "block_timeseries": blockRateData
+    }

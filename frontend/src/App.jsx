@@ -5,13 +5,8 @@ import DashboardOverview from './pages/DashboardOverview';
 import FraudTable from './pages/FraudTable';
 import UserDetail from './pages/UserDetail';
 
-function AlertsStub() {
-  return (
-    <div className="text-slate-400 p-10 text-center animate-in fade-in">
-      Alerts Panel Work In Progress! See Fraud Users for active detections.
-    </div>
-  );
-}
+import Analytics from './pages/Analytics';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -21,7 +16,8 @@ function App() {
           <Route index element={<DashboardOverview />} />
           <Route path="fraud" element={<FraudTable />} />
           <Route path="user/:id" element={<UserDetail />} />
-          <Route path="alerts" element={<AlertsStub />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>

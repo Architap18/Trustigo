@@ -1,27 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased min-h-screen font-sans transition-colors duration-300;
+    @apply bg-dashboard text-slate-300 antialiased min-h-screen font-sans;
+  }
+
+  /* Remove scrollbar for cleaner look */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-dashboard;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-700/50 rounded-full;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 transition-colors duration-300;
+    @apply bg-card rounded-2xl border border-white/[0.05] p-6 transition-all duration-300 relative overflow-hidden;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  }
+
+  .card:hover {
+    @apply border-white/[0.08] -translate-y-1;
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.08);
+  }
+
+  .card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 transition-opacity duration-300 pointer-events-none;
+  }
+
+  .card:hover::before {
+    @apply opacity-100;
   }
 
   .badge-safe {
-    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 px-3 py-1 rounded-full text-xs font-semibold;
+    @apply bg-safe/10 text-safe border border-safe/20 px-3 py-1 rounded-full text-xs font-semibold;
   }
 
   .badge-medium {
-    @apply bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 px-3 py-1 rounded-full text-xs font-semibold;
+    @apply bg-warning/10 text-warning border border-warning/20 px-3 py-1 rounded-full text-xs font-semibold;
   }
 
   .badge-high {
-    @apply bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 px-3 py-1 rounded-full text-xs font-semibold;
+    @apply bg-danger/10 text-danger border border-danger/20 px-3 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .btn-primary {
+    @apply bg-primary hover:bg-[#4f46e5] text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 active:scale-95 flex items-center justify-center gap-2;
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+  }
+
+  .btn-primary:hover {
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.5);
+  }
+
+  .btn-secondary {
+    @apply bg-card border border-white/[0.08] hover:bg-white/[0.03] text-slate-200 px-4 py-2 rounded-xl font-medium transition-all duration-300 active:scale-95 flex items-center justify-center gap-2;
   }
 }
