@@ -1,6 +1,6 @@
 # Trustigo — Detecting Fraud Before Refund
 
-🚀 **Live Deployment:** [https://trustigo.vercel.app](https://trustigo.vercel.app)
+🚀 **Live Deployment:** https://trustigo-e7qs.vercel.app/
 
 **1. Problem Statement**
 Analyzes transaction logs for suspicious return behavior
