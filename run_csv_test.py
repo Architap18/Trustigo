@@ -25,35 +25,34 @@ AMZ-1007,888003,SKU-DESK,300.00,{d3},{d_cold}
 with open("test_amazon.csv", "w") as f:
     f.write(csv_content)
 
-client = TestClient(app)
+with TestClient(app) as client:
+    print("--- Uploading test_amazon.csv ---")
+    with open("test_amazon.csv", "rb") as f:
+        response = client.post("/upload-csv", files={"file": ("test_amazon.csv", f, "text/csv")})
+        print(f"Upload Status: {response.status_code}")
 
-print("--- Uploading test_amazon.csv ---")
-with open("test_amazon.csv", "rb") as f:
-    response = client.post("/upload-csv", files={"file": ("test_amazon.csv", f, "text/csv")})
-    print(f"Upload Status: {response.status_code}")
+    print("\n--- Running Fraud Analysis ---")
+    analyze_res = client.post("/run-fraud-analysis")
 
-print("\n--- Running Fraud Analysis ---")
-analyze_res = client.post("/run-fraud-analysis")
+    print("\n--- Fetching Target User Outcomes ---")
+    users_res = client.get("/fraud-users")
+    users = users_res.json()
 
-print("\n--- Fetching Target User Outcomes ---")
-users_res = client.get("/fraud-users")
-users = users_res.json()
+    target_ids = {
+        888001: "User A (Serial Returner)",
+        888002: "User B (Cold Start Fraud)",
+        888003: "User C (Good Shopper)"
+    }
 
-target_ids = {
-    888001: "User A (Serial Returner)",
-    888002: "User B (Cold Start Fraud)",
-    888003: "User C (Good Shopper)"
-}
-
-for u in users:
-    if u['user_id'] in target_ids:
-        score = u['overall_risk_score']
-        engine = u['engine_used']
-        name = target_ids[u['user_id']]
-        print(f"\n{name} (ID: {u['user_id']})")
-        print(f"Risk Engine: {engine}")
-        print(f"Score: {score}/100")
-        print(f"Flags/Reasoning: {u.get('reasoning', '')}")
-        print(f"Return Rate: {u['return_rate_90d']*100:.1f}% | Fast Returns (<48h): {u['fast_return_count']}")
-        print(f"Refund/Value Ratio: {u.get('refund_value_ratio', 0.0)*100:.1f}% | High Value: {u['high_value_return_count']}")
-        print("-" * 40)
+    for u in users:
+        if u['user_id'] in target_ids:
+            score = u['overall_risk_score']
+            engine = u['engine_used']
+            name = target_ids[u['user_id']]
+            print(f"\n{name} (ID: {u['user_id']})")
+            print(f"Risk Engine: {engine}")
+            print(f"Score: {score}/100")
+            print(f"Flags/Reasoning: {u.get('reasoning', '')}")
+            print(f"Return Rate: {u['return_rate_90d']*100:.1f}% | Fast Returns (<48h): {u['fast_return_count']}")
+            print(f"Refund/Value Ratio: {u.get('refund_value_ratio', 0.0)*100:.1f}% | High Value: {u['high_value_return_count']}")
+            print("-" * 40)

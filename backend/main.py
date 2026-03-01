@@ -1,14 +1,22 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.database import engine, Base
+from contextlib import asynccontextmanager
+from backend.database import db_state, MONGO_URI, MockClient
 from backend.routes import users, transactions, fraud
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Connect to MongoDB
+    db_state.client = MockClient()
+    yield
+    # Shutdown: Close connection
+    db_state.client.close()
+
 
 app = FastAPI(
     title="Trustigo API V2", 
-    description="React + FastAPI E-commerce Returns Fraud Detection Dashboard"
+    description="React + FastAPI E-commerce Returns Fraud Detection Dashboard",
+    lifespan=lifespan
 )
 
 app.add_middleware(

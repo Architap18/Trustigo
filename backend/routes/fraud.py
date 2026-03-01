@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
-from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import User, BehaviorScore, FraudAlert, Transaction, Return, Item
 from backend.schemas import BehaviorScoreOut, FraudAlertOut
@@ -7,23 +6,23 @@ from backend.behavior_score import calculate_user_behavior_metrics
 from backend.fraud_engine import calculate_final_scores
 import pandas as pd
 import io
+import pymongo
 
 router = APIRouter()
 
 @router.post("/upload-csv")
-async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_csv(file: UploadFile = File(...), db = Depends(get_db)):
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Invalid file format. Please upload a CSV.")
     
     try:
         # Wipe old database state before importing!
-        db.query(Return).delete()
-        db.query(Item).delete()
-        db.query(Transaction).delete()
-        db.query(BehaviorScore).delete()
-        db.query(FraudAlert).delete()
-        db.query(User).delete()
-        db.commit()
+        await db.returns.delete_many({})
+        await db.items.delete_many({})
+        await db.transactions.delete_many({})
+        await db.behavior_scores.delete_many({})
+        await db.fraud_alerts.delete_many({})
+        await db.users.delete_many({})
         
         contents = await file.read()
         try:
@@ -127,17 +126,17 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
             # 1. Batch Users
             if uid not in new_users_dict:
                 raw_name = str(row.get('buyer_name_raw', f"User {uid}"))
-                new_users_dict[uid] = User(user_id=uid, name=raw_name, email=f"user{uid}@example.com", account_age=30)
+                new_users_dict[uid] = User(user_id=uid, name=raw_name, email=f"user{uid}@example.com", account_age=30).model_dump()
                 
             # 2. Batch Transactions
             if tid not in new_txns_dict:
-                new_txns_dict[tid] = Transaction(transaction_id=tid, user_id=uid, date=txn_date, total_amount=price)
+                new_txns_dict[tid] = Transaction(transaction_id=tid, user_id=uid, date=txn_date, total_amount=price).model_dump()
             else:
-                new_txns_dict[tid].total_amount += price
+                new_txns_dict[tid]['total_amount'] += price
                 
             # 3. Batch Items
             if iid not in new_items_dict:
-                new_items_dict[iid] = Item(item_id=iid, transaction_id=tid, name="Imported Item", price=price, category="Unknown")
+                new_items_dict[iid] = Item(item_id=iid, transaction_id=tid, name="Imported Item", price=price, category="Unknown").model_dump()
                 
             # 4. Batch Returns
             if 'return_date' in df.columns and pd.notna(row['return_date']):
@@ -153,13 +152,12 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
                             reason="CSV Import",
                             refund_amount=price,
                             item_condition="Unknown"
-                        )
+                        ).model_dump()
                         
-        db.add_all(list(new_users_dict.values()))
-        db.add_all(list(new_txns_dict.values()))
-        db.add_all(list(new_items_dict.values()))
-        db.add_all(list(new_returns_dict.values()))
-        db.commit()
+        if new_users_dict: await db.users.insert_many(list(new_users_dict.values()))
+        if new_txns_dict: await db.transactions.insert_many(list(new_txns_dict.values()))
+        if new_items_dict: await db.items.insert_many(list(new_items_dict.values()))
+        if new_returns_dict: await db.returns.insert_many(list(new_returns_dict.values()))
         
         return {
             "message": "CSV Processed Successfully",
@@ -173,93 +171,90 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
     except pd.errors.EmptyDataError:
         raise HTTPException(status_code=400, detail="The uploaded CSV file is empty.")
     except Exception as e:
-        db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to process CSV: {str(e)}")
 
 @router.get("/fraud-users", response_model=list[BehaviorScoreOut])
-def get_fraud_users(limit: int = 15000, db: Session = Depends(get_db)):
+async def get_fraud_users(limit: int = 15000, db = Depends(get_db)):
     # Returns users with high risk score, sorted descending
-    return db.query(BehaviorScore).order_by(BehaviorScore.overall_risk_score.desc()).limit(limit).all()
+    cursor = db.behavior_scores.find().sort("overall_risk_score", pymongo.DESCENDING).limit(limit)
+    return await cursor.to_list(length=limit)
 
 @router.get("/alerts", response_model=list[FraudAlertOut])
-def get_alerts(limit: int = 20, db: Session = Depends(get_db)):
-    return db.query(FraudAlert).order_by(FraudAlert.date.desc()).limit(limit).all()
+async def get_alerts(limit: int = 20, db = Depends(get_db)):
+    cursor = db.fraud_alerts.find().sort("date", pymongo.DESCENDING).limit(limit)
+    return await cursor.to_list(length=limit)
 
 @router.post("/run-fraud-analysis")
-def run_analysis(db: Session = Depends(get_db)):
-    """
-    1. Grabs all users and calculates raw metrics.
-    2. Runs anomaly detection and aggregates into the final scores.
-    3. Saves BehaviorScores and generates Alerts.
-    """
-    users = db.query(User).all()
+async def run_analysis(db = Depends(get_db)):
+    users = await db.users.find().to_list(length=None)
     all_metrics = []
     
     for u in users:
-        mets = calculate_user_behavior_metrics(db, u.user_id)
+        mets = await calculate_user_behavior_metrics(db, u['user_id'])
         all_metrics.append(mets)
         
-    final_scores = calculate_final_scores(all_metrics)
+    final_scores = calculate_final_scores(list(all_metrics))
+
     
     # Save to db
     for fs in final_scores:
         uid = fs['user_id']
         
-        # update or create BehaviorScore
-        bs = db.query(BehaviorScore).filter(BehaviorScore.user_id == uid).first()
-        if not bs:
-            bs = BehaviorScore(user_id=uid)
-            db.add(bs)
-            
-        bs.return_rate_90d = fs['return_rate_90d']
-        bs.avg_return_time_days = fs['avg_return_time_days']
-        bs.fast_return_count = fs['fast_return_count']
-        bs.high_value_return_count = fs['high_value_return_count']
-        bs.refund_value_ratio = fs.get('refund_value_ratio', 0.0)
-        bs.category_risk_score = fs.get('category_risk_score', 0.0)
-        bs.payment_risk_score = fs.get('payment_risk_score', 0.0)
-        bs.engine_used = fs.get('engine_used', 'Engine 1: Behavioral')
-        bs.anomaly_score = fs['anomaly_score']
-        bs.overall_risk_score = fs['overall_risk_score']
+        bs_dict = {
+            "user_id": uid,
+            "return_rate_90d": fs['return_rate_90d'],
+            "avg_return_time_days": fs['avg_return_time_days'],
+            "fast_return_count": fs['fast_return_count'],
+            "high_value_return_count": fs['high_value_return_count'],
+            "refund_value_ratio": fs.get('refund_value_ratio', 0.0),
+            "category_risk_score": fs.get('category_risk_score', 0.0),
+            "payment_risk_score": fs.get('payment_risk_score', 0.0),
+            "engine_used": fs.get('engine_used', 'Engine 1: Behavioral'),
+            "anomaly_score": fs['anomaly_score'],
+            "overall_risk_score": fs['overall_risk_score']
+        }
+        
+        # update or create BehaviorScore using Motor update_one with upsert
+        await db.behavior_scores.update_one(
+            {"user_id": uid},
+            {"$set": bs_dict},
+            upsert=True
+        )
         
         # Handle Alerts
-        if bs.overall_risk_score > 60:
-            # Check if alert already exists recently to avoid spam, for MVP we just create one if not exists
-            existing_alert = db.query(FraudAlert).filter(
-                FraudAlert.user_id == uid, 
-                FraudAlert.status == 'Active'
-            ).first()
+        if fs['overall_risk_score'] > 60:
+            existing_alert = await db.fraud_alerts.find_one({
+                "user_id": uid, 
+                "status": "Active"
+            })
             
             if not existing_alert:
                 alert = FraudAlert(
                     user_id=uid,
-                    risk_score=bs.overall_risk_score,
+                    risk_score=fs['overall_risk_score'],
                     primary_reason=fs['reasoning'],
                     status="Active"
-                )
-                db.add(alert)
+                ).model_dump()
+                await db.fraud_alerts.insert_one(alert)
                 
-    db.commit()
     return {"message": f"Successfully ran analysis on {len(users)} users"}
 
 @router.get("/analytics-summary")
-def get_analytics_summary(db: Session = Depends(get_db)):
+async def get_analytics_summary(db = Depends(get_db)):
     # 1. Total Monitored API (total unique transactions)
-    total_txns = db.query(Transaction).count()
+    total_txns = await db.transactions.count_documents({})
     
     # 2. Capital Saved ($ value of all returned items flagged by high-risk users)
-    # Get all high risk users
-    high_risk_users = db.query(BehaviorScore).filter(BehaviorScore.overall_risk_score >= 60).all()
-    high_risk_uids = [h.user_id for h in high_risk_users]
+    high_risk_cursor = db.behavior_scores.find({"overall_risk_score": {"$gte": 60}})
+    high_risk_users = await high_risk_cursor.to_list(length=None)
+    high_risk_uids = [h['user_id'] for h in high_risk_users]
     
-    # Get returns associated with high risk users (Assuming these would be blocked in a real flow)
-    blocked_returns = db.query(Return).filter(Return.user_id.in_(high_risk_uids)).all()
-    capital_saved = sum(r.refund_amount for r in blocked_returns)
+    blocked_returns = await db.returns.find({"user_id": {"$in": high_risk_uids}}).to_list(length=None)
+    capital_saved = sum(r.get('refund_amount', 0.0) for r in blocked_returns)
     blocked_count = len(blocked_returns)
     
-    # Unrecognized Leakage (returns from users *not* high risk)
-    allowed_returns = db.query(Return).filter(~Return.user_id.in_(high_risk_uids)).all()
-    unrecognized_leakage = sum(r.refund_amount for r in allowed_returns)
+    allowed_returns = await db.returns.find({"user_id": {"$nin": high_risk_uids}}).to_list(length=None)
+    unrecognized_leakage = sum(r.get('refund_amount', 0.0) for r in allowed_returns)
     manual_reviews = len(allowed_returns)
 
     # 3. Time Series Data (Mocked out over months based on dynamic scalar ratio of actual db size for hackathon demo purposes)
@@ -267,11 +262,13 @@ def get_analytics_summary(db: Session = Depends(get_db)):
         import random
         fractions = [random.uniform(0.5, 1.5) for _ in range(7)]
         base = sum(fractions)
-        return [round((f / base) * total, 2) for f in fractions]
+        return [int((f / base) * total) for f in fractions]
 
     # Gross Volume Calculation
-    all_txns = db.query(Transaction).all()
-    gross_volume = sum(t.total_amount for t in all_txns)
+    all_txns_cursor = db.transactions.find()
+    all_txns = await all_txns_cursor.to_list(length=None)
+    gross_volume = sum(t.get('total_amount', 0.0) for t in all_txns)
+
     expected_earnings = gross_volume - unrecognized_leakage
 
     revenueLossData = {
