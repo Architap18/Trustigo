@@ -1,5 +1,6 @@
-<<<<<<< HEAD
-Trustigo — Detecting Fraud Before Refund
+# Trustigo — Detecting Fraud Before Refund
+
+🚀 **Live Deployment:** [https://trustigo.vercel.app](https://trustigo.vercel.app)
 
 **1. Problem Statement**
 Analyzes transaction logs for suspicious return behavior
@@ -302,13 +303,6 @@ Trustigo enables:
 * Fair treatment of genuine customers
 * Data-driven fraud investigation
 * Scalable fraud management solutions
-=======
-# Trustigo
-
-**AI-powered E-commerce Returns Fraud Detection Dashboard**
-
-Trustigo is a hackathon MVP designed to detect fraudulent return behavior such as serial returning, wardrobing, and abnormal purchase-return patterns.
-
 ## Features
 - **AI Analytics**: Uses Isolation Forest to detect anomalous return patterns.
 - **Explainable AI**: Generates a human-readable explanation alongside a 0-100 risk score based on rule logic.
@@ -334,4 +328,3 @@ Trustigo is a hackathon MVP designed to detect fraudulent return behavior such a
 
 ## APIs
 - Swagger AI docs available running at `http://127.0.0.1:8000/docs`.
->>>>>>> beadc2f (11:36pm)
