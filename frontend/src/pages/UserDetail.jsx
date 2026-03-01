@@ -8,6 +8,8 @@ import { Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(ArcElement);
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 export default function UserDetail() {
     const { id } = useParams();
     const [user, setUser] = useState(null);
@@ -16,7 +18,7 @@ export default function UserDetail() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const res = await axios.get(`http://127.0.0.1:8000/user/${id}`);
+                const res = await axios.get(`${API_URL}/user/${id}`);
                 setUser(res.data);
             } catch (e) {
                 console.error("Failed to fetch user details", e);

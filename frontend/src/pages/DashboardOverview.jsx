@@ -10,6 +10,8 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 ChartJS.defaults.color = '#94a3b8';
 ChartJS.defaults.font.family = 'Inter';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 export default function DashboardOverview() {
     const [data, setData] = useState([]);
     const [stats, setStats] = useState({ total: 0, fraud: 0, avg: 0 });
@@ -19,7 +21,7 @@ export default function DashboardOverview() {
 
     const fetchUsers = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:8000/fraud-users');
+            const res = await axios.get(`${API_URL}/fraud-users`);
             setData(res.data);
             const total = res.data.length;
             const fraud = res.data.filter(u => u.overall_risk_score >= 60).length;
@@ -39,7 +41,7 @@ export default function DashboardOverview() {
     const handleRunAnalysis = async () => {
         setEvaluating(true);
         try {
-            await axios.post('http://127.0.0.1:8000/run-fraud-analysis');
+            await axios.post(`${API_URL}/run-fraud-analysis`);
             await fetchUsers();
         } catch (e) {
             console.error('Analysis failed', e);
@@ -63,7 +65,7 @@ export default function DashboardOverview() {
         formData.append("file", file);
 
         try {
-            const res = await axios.post('http://127.0.0.1:8000/upload-csv', formData, {
+            const res = await axios.post(`${API_URL}/upload-csv`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
             alert(`CSV Uploaded! ${res.data.stats.new_users} new users.`);

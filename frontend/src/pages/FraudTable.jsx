@@ -3,6 +3,8 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Download, UserCircle2 } from 'lucide-react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 export default function FraudTable() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -10,7 +12,7 @@ export default function FraudTable() {
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const res = await axios.get('http://127.0.0.1:8000/fraud-users');
+                const res = await axios.get(`${API_URL}/fraud-users`);
                 setUsers(res.data);
             } catch (e) {
                 console.error("Failed to fetch users", e);

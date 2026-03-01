@@ -6,6 +6,8 @@ import axios from 'axios';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 export default function Analytics() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -13,7 +15,7 @@ export default function Analytics() {
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
-                const res = await axios.get('http://127.0.0.1:8000/analytics-summary');
+                const res = await axios.get(`${API_URL}/analytics-summary`);
                 setData(res.data);
             } catch (error) {
                 console.error("Failed to load analytics", error);
