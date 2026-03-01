@@ -255,10 +255,12 @@ Uploads transaction dataset.
 6. Analyst reviews explanation
 
  12. Demo & Video
-
+**Demo Video:** https://drive.google.com/drive/u/0/folders/19SXgKLO1QAgNckAvgK0IkejcFKrc5MYl
+**PPT**: https://drive.google.com/drive/u/0/folders/19SXgKLO1QAgNckAvgK0IkejcFKrc5MYl
+**Deployment Link:** https://trustigo-e7qs.vercel.app/
 **GitHub Repository:** https://github.com/Architap18/Trustigo
 
- 13. Hackathon Deliverables Summary
+ 14. Hackathon Deliverables Summary
 
 * Functional Fraud Detection Dashboard
 * Explainable Risk Scoring System
