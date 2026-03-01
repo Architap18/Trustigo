@@ -1,13 +1,20 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()  # This must happen before we initialize other config variables
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from backend.database import db_state, MONGO_URI, MockClient
+from motor.motor_asyncio import AsyncIOMotorClient
+from backend.database import db_state
 from backend.routes import users, transactions, fraud
+
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Connect to MongoDB
-    db_state.client = MockClient()
+    # Startup: Connect to Real MongoDB (Local or Atlas)
+    db_state.client = AsyncIOMotorClient(MONGO_URI)
     yield
     # Shutdown: Close connection
     db_state.client.close()
